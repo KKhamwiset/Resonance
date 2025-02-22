@@ -1,4 +1,4 @@
-# SoundShop
+# Resonance
 Software Engineering's Project
 Look at the [Nuxt documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
 This is the [Folder Structure](https://vueschool.io/articles/vuejs-tutorials/understanding-the-directory-structure-in-nuxt-3/).

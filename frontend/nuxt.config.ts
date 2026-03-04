@@ -14,7 +14,7 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-01-07',
   runtimeConfig: {
     public: {
-      apiUrl: process.env.API_URL,
+      apiUrl: process.env.API_URL || "https://resonance-ui.up.railway.app/",
       NODE_ENV: process.env.ENVIRONMENT,
       imgApiKey: process.env.API_IMG_KEY
     }

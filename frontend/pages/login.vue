@@ -209,6 +209,7 @@ const togglePasswordVisibility = () => {
                 <!-- Enhanced login button with loading state -->
                 <div class="pt-2">
                   <button
+                    id="login"
                     class="w-full py-3.5 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-medium rounded-xl transition-all shadow-md hover:shadow-lg active:shadow-sm transform hover:-translate-y-0.5 active:translate-y-0 duration-150"
                     :disabled="isLoggingIn"
                     @click="handleLogin"

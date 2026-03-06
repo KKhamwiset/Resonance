@@ -502,6 +502,7 @@ class="text-orange-500 hover:text-orange-600 font-medium hover:underline"
                                     <!-- Create account button -->
                                     <div class="lg:col-span-2 pt-2 flex justify-center">
                                         <button
+                                            id="confirmCreation"
                                             class="w-3/4 py-3.5 bg-gradient-to-r transition-all shadow-md transform duration-150 rounded-xl font-medium"
                                             :class="isFormValid
                                                 ? 'from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white hover:shadow-lg active:shadow-sm hover:-translate-y-0.5 active:translate-y-0'

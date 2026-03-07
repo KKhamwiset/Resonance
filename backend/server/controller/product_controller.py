@@ -1,4 +1,4 @@
-from django.db.models import Count
+from django.db.models import Count, Min, Max, Q
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -18,7 +18,7 @@ class initializeController_Product:
 
 @api_view(["GET"])
 def get_all_products(request):
-    products = Product.objects.all()
+    products = Product.objects.all().select_related("category")
     serializer = ProductSerializer(products, many=True)
     return Response(serializer.data)
 
@@ -26,8 +26,10 @@ def get_all_products(request):
 @api_view(["GET"])
 def get_product_by_category(request, category):
     try:
-        category_obj = Category.objects.get(slug=category)
-        products = Product.objects.filter(category=category_obj)
+        products = Product.objects.filter(category__slug=category).select_related("category")
+        if not products.exists() and not Category.objects.filter(slug=category).exists():
+            return Response({"error": "Category not found"}, status=404)
+             
         serializer = ProductSerializer(products, many=True)
         return Response(serializer.data)
     except Category.DoesNotExist:
@@ -36,14 +38,14 @@ def get_product_by_category(request, category):
 
 @api_view(["GET"])
 def get_product_detailed(request, category, id):
-    product = get_object_or_404(Product, pk=id)
+    product = get_object_or_404(Product.objects.select_related("category"), pk=id)
     serializer = ProductSerializer(product)
     return Response(serializer.data)
 
 
 @api_view(["GET"])
 def get_product_detailed_single_route(request, id):
-    product = get_object_or_404(Product, pk=id)
+    product = get_object_or_404(Product.objects.select_related("category"), pk=id)
     serializer = ProductSerializer(product)
     return Response(serializer.data)
 
@@ -66,29 +68,30 @@ def get_product_filters(request):
         .order_by("connections")
     )
 
-    # Get price ranges (calculated on the fly)
-    price_min = (
-        Product.objects.order_by("price").first().price
-        if Product.objects.exists()
-        else 0
+    # Calculate price stats in a single DB query using aggregate
+    price_stats = Product.objects.aggregate(
+        price_min=Min("price"),
+        price_max=Max("price"),
+        count_under_100=Count("id", filter=Q(price__lt=100)),
+        count_100_to_300=Count("id", filter=Q(price__gte=100, price__lt=300)),
+        count_300_to_500=Count("id", filter=Q(price__gte=300, price__lt=500)),
+        count_over_500=Count("id", filter=Q(price__gte=500))
     )
-    price_max = (
-        Product.objects.order_by("-price").first().price
-        if Product.objects.exists()
-        else 1000
-    )
+    
+    price_min = price_stats["price_min"] or 0
+    price_max = price_stats["price_max"] or 1000
 
     # Create price ranges based on actual data
     price_ranges = []
-    if Product.objects.exists():
-        # Define price ranges
+    
+    if price_stats["price_min"] is not None:
         if price_min < 100:
             price_ranges.append(
                 {
                     "name": "Under $100",
                     "min": 0,
                     "max": 99.99,
-                    "count": Product.objects.filter(price__lt=100).count(),
+                    "count": price_stats["count_under_100"],
                 }
             )
 
@@ -98,9 +101,7 @@ def get_product_filters(request):
                     "name": "$100 - $300",
                     "min": 100,
                     "max": 299.99,
-                    "count": Product.objects.filter(
-                        price__gte=100, price__lt=300
-                    ).count(),
+                    "count": price_stats["count_100_to_300"],
                 }
             )
 
@@ -110,19 +111,17 @@ def get_product_filters(request):
                     "name": "$300 - $500",
                     "min": 300,
                     "max": 499.99,
-                    "count": Product.objects.filter(
-                        price__gte=300, price__lt=500
-                    ).count(),
+                    "count": price_stats["count_300_to_500"],
                 }
             )
 
-        if price_max > 500:
+        if price_max >= 500:
             price_ranges.append(
                 {
                     "name": "Over $500",
                     "min": 500,
                     "max": None,
-                    "count": Product.objects.filter(price__gte=500).count(),
+                    "count": price_stats["count_over_500"],
                 }
             )
     else:

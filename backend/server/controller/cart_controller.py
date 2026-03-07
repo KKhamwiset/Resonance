@@ -12,9 +12,10 @@ def get_cart_data(user):
     # Get or create cart
     cart, created = Cart.objects.get_or_create(user=user)
 
-    # Get cart items with product details
+    # Get cart items with product details (optimized using select_related)
     items = []
-    for item in cart.items.all():
+    # Eager load the product and its category to avoid N+1 queries
+    for item in cart.items.select_related("product", "product__category").all():
         items.append(
             {
                 "id": item.product.id,

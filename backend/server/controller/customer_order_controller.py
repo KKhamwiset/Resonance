@@ -186,7 +186,8 @@ def get_user_by_id(request, user_id):
 def get_user_orders(request):
     """Get all orders for the authenticated user"""
     user = request.user
-    orders = Order.objects.filter(user=user).order_by("-created_at")
+    # Eager load the order items and their associated products to avoid N+1 queries
+    orders = Order.objects.filter(user=user).prefetch_related("items__product").order_by("-created_at")
 
     orders_data = []
     for order in orders:
@@ -227,8 +228,8 @@ def get_order_details(request, order_id):
     user = request.user
 
     try:
-        # Ensure the order belongs to the authenticated user
-        order = Order.objects.get(id=order_id, user=user)
+        # Ensure the order belongs to the authenticated user and eager load items + products
+        order = Order.objects.prefetch_related("items__product").get(id=order_id, user=user)
 
         order_items = []
         for item in order.items.all():
